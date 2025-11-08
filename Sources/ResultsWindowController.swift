@@ -61,6 +61,10 @@ class ResultsWindowController: NSWindowController {
         textView.autoresizingMask = [.width, .height]
         textView.textContainerInset = NSSize(width: 5, height: 5)
         textView.drawsBackground = true
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false // We want vertical scrolling, not horizontal
 
         // Set the text after configuration
         textView.string = text
