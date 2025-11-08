@@ -7,6 +7,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var resultsWindowController: ResultsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Ensure app doesn't show in Dock or Alt-Tab
+        NSApp.setActivationPolicy(.accessory)
+
         // Setup application menu bar for Edit menu (needed for copy/paste to work)
         setupMenuBar()
 
