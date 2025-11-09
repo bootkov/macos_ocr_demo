@@ -13,6 +13,7 @@ class ResultsWindowController: NSWindowController {
         window.title = "OCR Result"
         window.center()
         window.isReleasedWhenClosed = false
+        window.level = .floating
 
         self.init(window: window)
         setupUI(text: text)
