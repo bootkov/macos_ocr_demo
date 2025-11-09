@@ -2,6 +2,14 @@
 
 set -e
 
+# Kill the process if it's running
+echo "Checking for running ClipboardOCR process..."
+if pgrep -x "ClipboardOCR" > /dev/null; then
+    echo "Killing running ClipboardOCR process..."
+    killall ClipboardOCR
+    sleep 0.5
+fi
+
 echo "Building ClipboardOCR..."
 
 # Build the Swift package

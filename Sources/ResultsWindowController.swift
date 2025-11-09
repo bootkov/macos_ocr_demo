@@ -55,9 +55,10 @@ class ResultsWindowController: NSWindowController {
         textView.isAutomaticSpellingCorrectionEnabled = false
         textView.isContinuousSpellCheckingEnabled = false
         textView.isGrammarCheckingEnabled = false
-        textView.isRichText = false
+        textView.isRichText = true
         textView.usesFontPanel = false
         textView.usesRuler = false
+        textView.isAutomaticLinkDetectionEnabled = true
         textView.autoresizingMask = [.width, .height]
         textView.textContainerInset = NSSize(width: 5, height: 5)
         textView.drawsBackground = true
@@ -66,8 +67,8 @@ class ResultsWindowController: NSWindowController {
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false // We want vertical scrolling, not horizontal
 
-        // Set the text after configuration
-        textView.string = text
+        // Set the text after configuration with link detection
+        setTextWithLinks(text)
 
         scrollView.documentView = textView
         contentView.addSubview(scrollView)
@@ -115,7 +116,59 @@ class ResultsWindowController: NSWindowController {
     }
 
     func updateText(_ newText: String) {
-        textView?.string = newText
+        setTextWithLinks(newText)
+    }
+
+    private func setTextWithLinks(_ text: String) {
+        guard let textView = textView else { return }
+
+        // Create attributed string with default attributes
+        let attributedString = NSMutableAttributedString(string: text)
+        let fullRange = NSRange(location: 0, length: text.utf16.count)
+
+        // Set default font and color
+        attributedString.addAttribute(.font, value: NSFont.monospacedSystemFont(ofSize: 12, weight: .regular), range: fullRange)
+        attributedString.addAttribute(.foregroundColor, value: NSColor.labelColor, range: fullRange)
+
+        // Custom URL detection pattern split into two parts:
+        // 1. Regular links without spaces (any TLD): example.com, example.ai, etc.
+        // 2. Links with spaces around dot before popular TLDs (OCR errors): example. com, example .com, etc.
+        let pattern1 = #"(?:https?://|www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*(?:\.[a-zA-Z0-9][-a-zA-Z0-9]*)*\.[a-zA-Z]{2,}(?:/[^\s]*)?"#
+        let pattern2 = #"(?:https?://|www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*(?:\.[a-zA-Z0-9][-a-zA-Z0-9]*)*[ \t]*\.[ \t]*(?:com|org|net|edu|gov|io|ai|co|ru|eu|es|cn|app|dev|uz)(?:/[^\s]*)?"#
+        let pattern = pattern1 + "|" + pattern2
+
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            textView.textStorage?.setAttributedString(attributedString)
+            return
+        }
+
+        let matches = regex.matches(in: text, options: [], range: fullRange)
+
+        // Add link attributes to detected URLs
+        for match in matches {
+            let matchedText = (text as NSString).substring(with: match.range)
+
+            // Clean up the matched text by removing spaces
+            let cleanedText = matchedText.replacingOccurrences(of: " ", with: "")
+
+            // Ensure the URL has a protocol
+            let urlString: String
+            if cleanedText.starts(with: "http://") || cleanedText.starts(with: "https://") {
+                urlString = cleanedText
+            } else {
+                urlString = "https://" + cleanedText
+            }
+
+            if let url = URL(string: urlString) {
+                attributedString.addAttribute(.link, value: url, range: match.range)
+                attributedString.addAttribute(.foregroundColor, value: NSColor.linkColor, range: match.range)
+                attributedString.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: match.range)
+            }
+        }
+
+        // Set the attributed string
+        textView.textStorage?.setAttributedString(attributedString)
     }
 
     func show() {
